@@ -1,0 +1,8 @@
+GET http://localhost:3000/api/sauces
+Authorization: Bearer null
+
+#################################
+POST http://localhost:3000/api/sauces/629a2ff94ea4a68112efe512/like
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Ikpva2VyOTMxQGhvdG1haWwuY29tIiwiaWF0IjoxNjU0Mjc2MzA0LCJleHAiOjE2NTQzNjI3MDR9.eBNwdALfqBTGNSs1qle_ADKnSd7WnJ9LkLfX2-fnVkc
+
+{"userId": "test@example.com", "like": 3}
