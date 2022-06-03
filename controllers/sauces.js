@@ -134,14 +134,22 @@ function likeSauce(req, res) {
     
     console.log({ like, userId })
     getSauce(req, res)
-      .then((product) => console.log("PRODUIT:", product))
+      .then((product) => updateVote(product, like, userId))
       .catch((err) => res.status(500).send(err))
+}
+
+function updateVote(product, like, userId) {
+    if (like === 1) likePlus(product, userId)
+    //if (like === -1) downLike(product, userId)
+    //if (like === 0) resetVote(product, userId)
+}
+
+// Ajouter un Like
+function likePlus(product, userId) {
+    const { usersLiked } = product
+    if (usersLiked.includes(userId)) return
+    usersLiked.includes(userId)
+    product.likes++
 }
 // Envois des fonctions a exporté dans l'app
 module.exports = { getAllSauces, createSauce, getSauceById, deleteSauce, modidySauce, likeSauce }
-/*
-
-// Like === 0, -1, 1
-if(![0, -1, 1].includes(like)) return res.status(400).send({ message: "Bad request" })
-
-*/
