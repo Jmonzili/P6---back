@@ -1,5 +1,5 @@
 const { app, express } = require("./app")
-const { sauceRouter } = require("./routes/sauce")
+const { saucesRouter } = require("./routes/sauce")
 const { authRouter } = require("./routes/user")
 const bodyParser = require("body-parser")
 const port = 3000
@@ -10,7 +10,7 @@ require("./mongo")
 
 // Middleware
 app.use(bodyParser.json())
-app.use("/api/sauces", sauceRouter)
+app.use("/api/sauces", saucesRouter)
 app.use("/api/auth", authRouter)
 
 //Routes

@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { unlink } = require("fs/promises")
+const { likeSauce } = require("./vote")
 
 // Contenu d'un produit sauce
 const sauceSchema = new mongoose.Schema({
@@ -125,31 +126,5 @@ function createSauce(req, res) {
     .catch((err) => res.status(500).send({ message: err }))
 }
 
-// Fonction des Likes
-function likeSauce(req, res) {
-    const { like, userId } = req.body
-
-    // Like === 0, -1, 1
-    if(![0, -1, 1].includes(like)) return res.status(403).send({ message: "Invalid like value" })
-    
-    console.log({ like, userId })
-    getSauce(req, res)
-      .then((product) => updateVote(product, like, userId))
-      .catch((err) => res.status(500).send(err))
-}
-
-function updateVote(product, like, userId) {
-    if (like === 1) likePlus(product, userId)
-    //if (like === -1) downLike(product, userId)
-    //if (like === 0) resetVote(product, userId)
-}
-
-// Ajouter un Like
-function likePlus(product, userId) {
-    const { usersLiked } = product
-    if (usersLiked.includes(userId)) return
-    usersLiked.includes(userId)
-    product.likes++
-}
 // Envois des fonctions a exporté dans l'app
-module.exports = { getAllSauces, createSauce, getSauceById, deleteSauce, modidySauce, likeSauce }
+module.exports = { sendClientResponse, getSauce, getAllSauces, createSauce, getSauceById, deleteSauce, modidySauce, likeSauce }
