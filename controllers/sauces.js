@@ -1,18 +1,17 @@
 const mongoose = require("mongoose");
 const { unlink } = require("fs/promises")
-const { likeSauce } = require("./vote")
 
 // Contenu d'un produit sauce
 const sauceSchema = new mongoose.Schema({
-    userId: { type: String, required: true },
-    name: { type: String, required: true },
-    manufacturer: { type: String, required: true },
-    description: { type: String, required: true },
-    mainPepper: { type: String, required: true },
-    imageUrl: { type: String},
-    heat: { type: Number, required: true },
-    likes: { type: Number, required: true, default: 0 },
-    dislikes: { type: Number, required: true, default: 0 },
+    userId: String,
+    name: String,
+    manufacturer: String,
+    description: String,
+    mainPepper: String,
+    imageUrl: String,
+    heat: Number,
+    likes: Number,
+    dislikes: Number,
     usersLiked: [String],
     usersDisliked: [String]
 });
@@ -22,7 +21,7 @@ const Sauce = mongoose.model("Sauce", sauceSchema)
 function getAllSauces(req, res) {
     Sauce.find({})
       .then((sauces) => res.json(sauces))
-      .catch(error => res.status(500).json(error))
+      .catch(error => res.status(500).send(error))
 }
 
 // Séléctionné une sauce
@@ -64,6 +63,7 @@ function modidySauce(req, res) {
       .catch((err) => console.error("PROBLEM UPDATING:", err))
 }
 
+// Supression de l'image dans le dossier images
 function deleteImage(product) {
     if (product == null) return
     console.log("DELETE IMAGE:", product)
@@ -77,7 +77,6 @@ function makePayload(hasNewImage, req) {
     if (!hasNewImage) return req.body
     const payload = JSON.parse(req.body.sauce)
     payload.imageUrl = makeImageUrl(req, req.file.filename)
-    console.log("NOUVELLE IMAGE À GERER")
     console.log("voici le body:", payload)
     return payload
 }
@@ -85,12 +84,10 @@ function makePayload(hasNewImage, req) {
 // Envoi de la reponse du client
 function sendClientResponse(product, res) {
     if (product == null) {
-        console.log("NOTHING TU UPDATE")
         return res.status(404).send({ message: "Object not found in database" })
     }
     console.log("ALL GOOD, UPDATING:", product)
-    return Promise.resolve(res.status(200).send(product ))
-      .then(() => product)
+    return Promise.resolve(res.status(200).send(product)).then(() => product)
 }
 
 // Création de l'Url de l'image ajouté par le client
@@ -103,7 +100,7 @@ function createSauce(req, res) {
     const { body, file } = req
     const fileName = file.filename
     const sauceObject = JSON.parse(body.sauce)
-    const {name, manufacturer, description, mainPepper, heat, userId} = sauceObject
+    const { name, manufacturer, description, mainPepper, heat, userId } = sauceObject
 
 // Récupération des data envoyer par le client pour la création
     const sauce = new Sauce( {
@@ -121,10 +118,62 @@ function createSauce(req, res) {
     })
 // Sauvegarde du produit dans la Data Base
     sauce
-    .save()
-    .then((message) => res.status(201).send({ message }))
-    .catch((err) => res.status(500).send({ message: err }))
+      .save()
+      .then((message) => res.status(201).send({ message }))
+      .catch((err) => res.status(500).send({ message: err }))
+}
+
+// Fonction des Likes
+function likeSauce(req, res) {
+    const { like, userId } = req.body
+
+    // Like === 0, -1, 1
+    if(![1, -1, 0].includes(like)) return res.status(403).send({ message: "Invalid like value" })
+    
+    console.log({ like, userId })
+    getSauce(req, res)
+      .then((product) => updateVote(product, like, userId, res))
+      .then((pr) => pr.save())
+      .then((likesProduct) => sendClientResponse(likesProduct, res))
+      .catch((err) => res.status(500).send(err))
+}
+
+function updateVote(product, like, userId, res) {
+    if (like === 1 || like === -1) addVote(product, userId, like)
+    return resetVote(product, userId, res)
+}
+
+// Annuler le vote
+function resetVote(product, userId, res) {
+    const { usersLiked, usersDisliked } = product
+    if ([usersLiked, usersDisliked].every((arr) => arr.includes(userId))) 
+    return Promise.reject("User seems to have voted both ways" )
+
+    if (![usersLiked, usersDisliked].some((arr) => arr.includes(userId))) 
+    return Promise.reject("User seems to have not voted")
+
+    if (usersLiked.includes(userId)) {
+        --product.likes
+        product.usersLiked = product.usersLiked.filter((id) => id !== userId)
+    } else {
+        --product.dislikes
+        product.usersDisliked = product.usersDisliked.filter((id) => id !== userId)
+    }
+
+    return product
+}
+
+// Ajouter un Like ou un dislike
+function addVote(product, userId, like) {
+    const { usersLiked, usersDisliked } = product
+
+    const votersArray = like === 1 ? usersLiked : usersDisliked
+    if (votersArray.includes(userId)) return product
+    votersArray.push(userId)
+
+    like === 1 ? ++product.likes : ++product.dislikes
+    return product
 }
 
 // Envois des fonctions a exporté dans l'app
-module.exports = { sendClientResponse, getSauce, getAllSauces, createSauce, getSauceById, deleteSauce, modidySauce, likeSauce }
+module.exports = { getAllSauces, createSauce, getSauceById, deleteSauce, modidySauce, likeSauce }
