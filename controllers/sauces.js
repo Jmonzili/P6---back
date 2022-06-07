@@ -125,33 +125,38 @@ function createSauce(req, res) {
 
 // Fonction des Likes
 function likeSauce(req, res) {
-    const { like, userId } = req.body
+    const { like, userId } =req.body
+// Condition en cas d'erreur si la valeur du vote est invalide
+    if (![1, 0, -1].includes(like)) return res.status(403),send({ message: "Invalid like value" })
 
-    // Like === 0, -1, 1
-    if(![1, -1, 0].includes(like)) return res.status(403).send({ message: "Invalid like value" })
-    
-    console.log({ like, userId })
     getSauce(req, res)
       .then((product) => updateVote(product, like, userId, res))
-      .then((pr) => pr.save())
+// Envois dans la database
+      .then((prod) => prod.save())
+// 
       .then((likesProduct) => sendClientResponse(likesProduct, res))
       .catch((err) => res.status(500).send(err))
 }
 
+// Fonction de mise à jour des votes
 function updateVote(product, like, userId, res) {
-    if (like === 1 || like === -1) addVote(product, userId, like)
+    if (like === 1 || like === -1) return addVote(product, userId, like)
     return resetVote(product, userId, res)
 }
 
-// Annuler le vote
+// Fontion d'anulation du vote like = 0
 function resetVote(product, userId, res) {
     const { usersLiked, usersDisliked } = product
-    if ([usersLiked, usersDisliked].every((arr) => arr.includes(userId))) 
-    return Promise.reject("User seems to have voted both ways" )
 
+// Erreur si le userId est dans les 2 array de users
+    if ([usersLiked, usersDisliked].every((arr) => arr.includes(userId)))
+    return Promise.reject("User seems to have voted both ways")
+
+// Si le userId est dans aucun des array de users
     if (![usersLiked, usersDisliked].some((arr) => arr.includes(userId))) 
     return Promise.reject("User seems to have not voted")
 
+// Suppression de l'id dans l'array de usersLiked ou usersDisliked
     if (usersLiked.includes(userId)) {
         --product.likes
         product.usersLiked = product.usersLiked.filter((id) => id !== userId)
@@ -159,21 +164,28 @@ function resetVote(product, userId, res) {
         --product.dislikes
         product.usersDisliked = product.usersDisliked.filter((id) => id !== userId)
     }
-
     return product
 }
 
-// Ajouter un Like ou un dislike
+// Fonction d'ajout du like ou Dislike
 function addVote(product, userId, like) {
     const { usersLiked, usersDisliked } = product
-
+// Vérification de l'array a updater
     const votersArray = like === 1 ? usersLiked : usersDisliked
+
+// Condition si l'utilisateur a déjà liké
     if (votersArray.includes(userId)) return product
+// Envoi de l'id du user dans usersLiked
     votersArray.push(userId)
 
+// Ajout du like ou du dislike
     like === 1 ? ++product.likes : ++product.dislikes
     return product
 }
 
 // Envois des fonctions a exporté dans l'app
 module.exports = { getAllSauces, createSauce, getSauceById, deleteSauce, modidySauce, likeSauce }
+
+/*
+console.log("")
+*/
